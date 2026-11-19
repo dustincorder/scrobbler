@@ -1,0 +1,214 @@
+import { functionCall, supabase, FUNCTIONS_URL, signOut } from '../api.js';
+import { el, sectionHead, avatar } from '../ui.js';
+import { href, navigate } from '../router.js';
+import { shortDate } from '../format.js';
+
+function copyRow(label, value) {
+  const input = el('input', { readonly: true, value, spellcheck: 'false' });
+  const button = el('button', { class: 'button secondary small', type: 'button', text: 'Копировать' });
+  button.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      button.textContent = 'Скопировано';
+      setTimeout(() => { button.textContent = 'Копировать'; }, 1500);
+    } catch {
+      input.select();
+      document.execCommand?.('copy');
+      button.textContent = 'Скопировано';
+    }
+  });
+  return el('div', { class: 'field' },
+    el('span', { text: label }),
+    el('div', { class: 'copy-row' }, input, button),
+  );
+}
+
+export async function renderSettings(app) {
+  const profile = app.profile;
+  const wrap = el('div', { class: 'content narrow' });
+  wrap.append(el('h1', { text: 'Настройки' }));
+
+  // ---------- профиль ----------
+  const profilePanel = el('section', { class: 'panel' });
+  profilePanel.append(sectionHead('Профиль'));
+
+  const display = el('input', { value: profile.display_name ?? '', maxlength: '80' });
+  const country = el('input', { value: profile.country ?? '', maxlength: '80', placeholder: 'например, Россия' });
+  const avatarUrl = el('input', { value: profile.avatar_url ?? '', placeholder: 'https://…', type: 'url' });
+  const bio = el('textarea', { rows: '4', maxlength: '1000' });
+  bio.value = profile.bio ?? '';
+  const isPublic = el('input', { type: 'checkbox' });
+  isPublic.checked = profile.is_public !== false;
+
+  const saveState = el('span', { class: 'muted' });
+  const save = el('button', { class: 'button', type: 'button', text: 'Сохранить' });
+  save.addEventListener('click', async () => {
+    save.disabled = true;
+    saveState.textContent = 'Сохраняю…';
+    const { error } = await supabase.from('profiles').update({
+      display_name: display.value.trim() || profile.username,
+      country: country.value.trim() || null,
+      avatar_url: avatarUrl.value.trim() || null,
+      bio: bio.value.trim() || null,
+      is_public: isPublic.checked,
+    }).eq('id', profile.id);
+    save.disabled = false;
+    if (error) {
+      saveState.textContent = `Ошибка: ${error.message}`;
+      return;
+    }
+    Object.assign(profile, {
+      display_name: display.value.trim() || profile.username,
+      country: country.value.trim() || null,
+      avatar_url: avatarUrl.value.trim() || null,
+      bio: bio.value.trim() || null,
+      is_public: isPublic.checked,
+    });
+    saveState.textContent = 'Сохранено';
+    setTimeout(() => { saveState.textContent = ''; }, 2000);
+  });
+
+  const head = el('div', { class: 'settings-head' }, avatar(profile, { big: true }),
+    el('div', {}, el('strong', { text: `@${profile.username}` }), el('div', { class: 'muted', text: `с ${shortDate(profile.created_at)}` })));
+  profilePanel.append(
+    head,
+    el('div', { class: 'grid-2' },
+      el('label', { class: 'field' }, el('span', { text: 'Отображаемое имя' }), display),
+      el('label', { class: 'field' }, el('span', { text: 'Страна' }), country),
+    ),
+    el('label', { class: 'field' }, el('span', { text: 'Аватар (URL)' }), avatarUrl),
+    el('label', { class: 'field' }, el('span', { text: 'О себе' }), bio),
+    el('label', { class: 'checkbox' }, isPublic, el('span', { text: 'Публичный профиль' })),
+    el('div', { class: 'button-row' }, save, saveState),
+  );
+  wrap.append(profilePanel);
+
+  // ---------- подключение клиентов ----------
+  const apiRoot = `${FUNCTIONS_URL}/api/2.0`;
+  const webhookBase = `${FUNCTIONS_URL}/api/webhook`;
+
+  const tokens = await functionCall('/tokens');
+  let webhookToken = null;
+  try {
+    webhookToken = localStorage.getItem('scrobble:webhook-token');
+  } catch { /* private mode */ }
+  const hasWebhook = Boolean(webhookToken) && (tokens.tokens ?? []).some((t) => t.kind === 'webhook' && !t.revoked_at);
+
+  const clientsPanel = el('section', { class: 'panel' });
+  clientsPanel.append(sectionHead('Клиенты'));
+
+  clientsPanel.append(el('h3', { text: 'Pano Scrobbler (Android, TV, Windows)' }));
+  clientsPanel.append(el('ol', { class: 'steps' },
+    el('li', { text: 'Настройки → Скробблинг → добавить сервис → GNU FM.' }),
+    el('li', { text: 'URL сервера — ниже. Имя и пароль — как на этом сайте.' }),
+    el('li', { text: 'После входа Pano получит ключ сессии и будет писать сюда.' }),
+  ));
+  clientsPanel.append(copyRow('Last.fm-совместимый адрес', apiRoot));
+
+  clientsPanel.append(el('h3', { text: 'Web Scrobbler (браузер)' }));
+  clientsPanel.append(el('ol', { class: 'steps' },
+    el('li', { text: 'Настройки расширения → Добавить сервис → Webhook.' }),
+    el('li', { text: 'Вставь URL ниже и сохрани.' }),
+  ));
+  if (hasWebhook) {
+    clientsPanel.append(copyRow('Webhook URL', `${webhookBase}?token=${webhookToken}`));
+    clientsPanel.append(el('p', { class: 'hint', text: 'URL хранится в этом браузере. Если потерял — отзови токен и создай новый.' }));
+  } else {
+    clientsPanel.append(el('p', { class: 'hint', text: 'Создай webhook-токен в разделе «Токены» ниже — URL появится здесь.' }));
+  }
+
+  clientsPanel.append(el('h3', { text: 'ListenBrainz-совместимые клиенты' }));
+  clientsPanel.append(copyRow('Submit endpoint', `${FUNCTIONS_URL}/api/1/submit-listens`));
+  clientsPanel.append(el('p', { class: 'hint', text: 'Нужен токен типа listenbrainz. Подходит для клиентов, где можно указать свой сервер ListenBrainz.' }));
+
+  clientsPanel.append(el('h3', { text: 'Любой Last.fm-клиент' }));
+  clientsPanel.append(copyRow('API root', apiRoot));
+  wrap.append(clientsPanel);
+
+  // ---------- токены ----------
+  const tokenPanel = el('section', { class: 'panel' });
+  tokenPanel.append(sectionHead('Токены'));
+
+  const newTokenSlot = el('div', { class: 'hint' });
+  const kind = el('select', {},
+    el('option', { value: 'webhook', text: 'Web Scrobbler (webhook)' }),
+    el('option', { value: 'listenbrainz', text: 'ListenBrainz' }),
+  );
+  const label = el('input', { placeholder: 'название, например «ноутбук»', maxlength: '80' });
+  const create = el('button', { class: 'button secondary', type: 'button', text: 'Создать токен' });
+  create.addEventListener('click', async () => {
+    create.disabled = true;
+    try {
+      const result = await functionCall('/tokens', {
+        method: 'POST',
+        body: { kind: kind.value, label: label.value.trim() || null },
+      });
+      if (kind.value === 'webhook') {
+        try { localStorage.setItem('scrobble:webhook-token', result.token); } catch { /* ignore */ }
+      }
+      newTokenSlot.replaceChildren(
+        el('p', { text: 'Токен создан. Скопируй сейчас — потом не покажу.' }),
+        copyRow('Token', result.token),
+      );
+      await refreshTokens();
+    } catch (error) {
+      newTokenSlot.textContent = error.message;
+    } finally {
+      create.disabled = false;
+    }
+  });
+
+  const tokenList = el('div', { class: 'token-list' });
+  async function refreshTokens() {
+    const data = await functionCall('/tokens');
+    tokenList.replaceChildren();
+    const rows = data.tokens ?? [];
+    if (!rows.length) {
+      tokenList.append(el('p', { class: 'muted', text: 'Пока ни одного токена.' }));
+      return;
+    }
+    for (const token of rows) {
+      const row = el('div', { class: `token-row${token.revoked_at ? ' revoked' : ''}` });
+      row.append(el('div', {},
+        el('strong', { text: token.label || token.kind }),
+        el('div', { class: 'muted small', text: `${token.kind} · создан ${shortDate(token.created_at)}${token.last_used_at ? ` · использован ${shortDate(token.last_used_at)}` : ''}` }),
+      ));
+      if (!token.revoked_at) {
+        const revoke = el('button', { class: 'button danger small', type: 'button', text: 'Отозвать' });
+        revoke.addEventListener('click', async () => {
+          revoke.disabled = true;
+          await functionCall(`/tokens?id=${encodeURIComponent(token.id)}`, { method: 'DELETE' });
+          if (token.kind === 'webhook') {
+            try { localStorage.removeItem('scrobble:webhook-token'); } catch { /* ignore */ }
+          }
+          await refreshTokens();
+        });
+        row.append(revoke);
+      } else {
+        row.append(el('span', { class: 'muted small', text: 'отозван' }));
+      }
+      tokenList.append(row);
+    }
+  }
+
+  tokenPanel.append(
+    el('div', { class: 'grid-3' }, kind, label, create),
+    newTokenSlot,
+    tokenList,
+  );
+  wrap.append(tokenPanel);
+  refreshTokens().catch(() => {});
+
+  // ---------- сессия ----------
+  const sessionPanel = el('section', { class: 'panel' });
+  sessionPanel.append(sectionHead('Сессия'));
+  const logout = el('button', { class: 'button danger', type: 'button', text: 'Выйти' });
+  logout.addEventListener('click', async () => {
+    await signOut();
+    navigate(href('login'), true);
+  });
+  sessionPanel.append(logout);
+  wrap.append(sessionPanel);
+
+  return wrap;
+}

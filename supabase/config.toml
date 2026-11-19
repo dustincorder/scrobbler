@@ -1,0 +1,17 @@
+project_id = "scrobbler"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+
+[functions.api]
+verify_jwt = false
+
+[functions.import-lastfm]
+verify_jwt = false
