@@ -1,5 +1,5 @@
 import {
-  configured, supabase, FUNCTIONS_URL, signOut,
+  configured, supabase, FUNCTIONS_URL, signOut, signupsOpen,
 } from './api.js';
 import { parseRoute, href, navigate } from './router.js';
 import { el, avatar, spinner, errorBox } from './ui.js';
@@ -52,7 +52,9 @@ function shell(content, { wide = false } = {}) {
     actions.append(me);
   } else {
     actions.append(el('a', { class: 'ghost-link', href: href('login'), text: 'Войти' }));
-    actions.append(el('a', { class: 'button small', href: href('join'), text: 'Создать профиль' }));
+    if (signupsOpen) {
+      actions.append(el('a', { class: 'button small', href: href('join'), text: 'Создать профиль' }));
+    }
   }
 
   header.append(brand, search, actions);
@@ -83,8 +85,10 @@ function renderHome() {
       text: 'Скробблинг с телефона и браузера, полная статистика, любимые треки и графики. Свои данные, свой сервер, без подписки на API.',
     }),
     el('div', { class: 'hero-actions' },
-      el('a', { class: 'button', href: href('join'), text: 'Создать профиль' }),
-      el('a', { class: 'button secondary', href: href('login'), text: 'Войти' }),
+      signupsOpen
+        ? el('a', { class: 'button', href: href('join'), text: 'Создать профиль' })
+        : el('a', { class: 'button', href: href('login'), text: 'Войти' }),
+      signupsOpen ? el('a', { class: 'button secondary', href: href('login'), text: 'Войти' }) : null,
     ),
   );
 

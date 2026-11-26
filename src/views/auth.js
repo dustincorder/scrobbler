@@ -1,4 +1,4 @@
-import { signIn, signUp, validateUsername, functionCall } from '../api.js';
+import { signIn, signUp, validateUsername, functionCall, signupsOpen } from '../api.js';
 import { el, spinner, errorBox } from '../ui.js';
 import { href, navigate } from '../router.js';
 
@@ -11,7 +11,17 @@ function authCard(title, subtitle, form) {
 }
 
 export function renderAuth(root, route, { shell, app, navigate: go }) {
-  const join = route.name === 'join';
+  const join = route.name === 'join' && signupsOpen;
+  if (route.name === 'join' && !signupsOpen) {
+    root.replaceChildren(shell(el('div', { class: 'narrow' },
+      el('div', { class: 'auth-card' },
+        el('h1', { text: 'Регистрация закрыта' }),
+        el('p', { class: 'muted', text: 'Это личный сервер скробблинга: новые профили создаёт только владелец.' }),
+        el('a', { class: 'button', href: href('login'), text: 'Войти' }),
+      ),
+    )));
+    return;
+  }
   if (app.profile) {
     go(href('u', app.profile.username), true);
     return;
@@ -68,6 +78,14 @@ export function renderAuth(root, route, { shell, app, navigate: go }) {
     }
   });
 
+  const alt = join
+    ? el('p', { class: 'auth-alt' }, 'Уже есть профиль? ',
+        el('a', { href: href('login'), text: 'Войти' }))
+    : signupsOpen
+      ? el('p', { class: 'auth-alt' }, 'Ещё нет профиля? ',
+          el('a', { href: href('join'), text: 'Создать' }))
+      : null;
+
   const content = el('div', { class: 'auth-wrap' },
     authCard(
       join ? 'Новый слушатель' : 'С возвращением',
@@ -76,10 +94,7 @@ export function renderAuth(root, route, { shell, app, navigate: go }) {
         : 'Войди, чтобы смотреть свои настройки и импорт.',
       form,
     ),
-    el('p', { class: 'auth-alt' },
-      join ? 'Уже есть профиль? ' : 'Ещё нет профиля? ',
-      el('a', { href: href(join ? 'login' : 'join'), text: join ? 'Войти' : 'Создать' }),
-    ),
+    alt,
   );
 
   root.replaceChildren(shell(el('div', { class: 'narrow' }, content)));

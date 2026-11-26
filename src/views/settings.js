@@ -199,6 +199,53 @@ export async function renderSettings(app) {
   wrap.append(tokenPanel);
   refreshTokens().catch(() => {});
 
+  // ---------- пароль ----------
+  const passwordPanel = el('section', { class: 'panel' });
+  passwordPanel.append(sectionHead('Пароль'));
+
+  const newPassword = el('input', {
+    type: 'password', autocomplete: 'new-password', minlength: '6',
+    placeholder: 'минимум 6 символов',
+  });
+  const confirmPassword = el('input', {
+    type: 'password', autocomplete: 'new-password', minlength: '6',
+    placeholder: 'ещё раз',
+  });
+  const passwordState = el('span', { class: 'muted' });
+  const savePassword = el('button', { class: 'button secondary', type: 'button', text: 'Сменить пароль' });
+  savePassword.addEventListener('click', async () => {
+    passwordState.textContent = '';
+    if (newPassword.value.length < 6) {
+      passwordState.textContent = 'Пароль слишком короткий (минимум 6 символов).';
+      return;
+    }
+    if (newPassword.value !== confirmPassword.value) {
+      passwordState.textContent = 'Пароли не совпадают.';
+      return;
+    }
+    savePassword.disabled = true;
+    passwordState.textContent = 'Меняю…';
+    const { error } = await supabase.auth.updateUser({ password: newPassword.value });
+    savePassword.disabled = false;
+    if (error) {
+      passwordState.textContent = `Ошибка: ${error.message}`;
+      return;
+    }
+    newPassword.value = '';
+    confirmPassword.value = '';
+    passwordState.textContent = 'Пароль обновлён. В Pano Scrobbler останется старая сессия, пока не выйдешь из неё.';
+  });
+
+  passwordPanel.append(
+    el('p', { class: 'hint', text: 'Этот пароль используется для входа на сайт и для Pano Scrobbler (GNU FM).' }),
+    el('div', { class: 'grid-2' },
+      el('label', { class: 'field' }, el('span', { text: 'Новый пароль' }), newPassword),
+      el('label', { class: 'field' }, el('span', { text: 'Повтор' }), confirmPassword),
+    ),
+    el('div', { class: 'button-row' }, savePassword, passwordState),
+  );
+  wrap.append(passwordPanel);
+
   // ---------- сессия ----------
   const sessionPanel = el('section', { class: 'panel' });
   sessionPanel.append(sectionHead('Сессия'));

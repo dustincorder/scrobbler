@@ -214,6 +214,10 @@ export function artwork(artist, album) {
 
 export const EMAIL_DOMAIN = 'users.scrobble.invalid';
 
+// Registration is closed by default. Supabase auth has it disabled as well; this
+// flag only controls whether the UI offers the "join" flow at all.
+export const signupsOpen = import.meta.env.VITE_SIGNUPS_OPEN === 'true';
+
 export function emailFor(username) {
   return `${username}@${EMAIL_DOMAIN}`;
 }
