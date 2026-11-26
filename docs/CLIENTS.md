@@ -73,21 +73,22 @@ curl -X POST "https://<project-ref>.supabase.co/functions/v1/api/scrobble?token=
 
 ## ListenBrainz-совместимые клиенты
 
-Endpoint:
+Базовый API URL (клиент сам допишет `/1/submit-listens` и `/1/validate-token`):
 
 ```
-https://<project-ref>.supabase.co/functions/v1/api/1/submit-listens
+https://<project-ref>.supabase.co/functions/v1/api
 ```
 
 Заголовок:
 
 ```
-Authorization: Token <listenbrainz-токен из настроек>
+Authorization: Token <listenbrainz-токен или API-ключ из настроек>
 ```
 
-Тело — стандартный `{"listen_type":"single","payload":[...]}`.
-Подходит для клиентов с настраиваемым адресом ListenBrainz (у Pano и Web
-Scrobbler адрес зашит, поэтому им нужны GNU FM / Webhook).
+Поддерживаются `listen_type`: `single`, `import`, `playing_now` (ставит
+«сейчас играет»). В Web Scrobbler это сервис ListenBrainz — в настройках
+расширения вставить API URL и токен. У Pano адрес ListenBrainz зашит, ему —
+GNU FM.
 
 ## Проверка, что всё работает
 

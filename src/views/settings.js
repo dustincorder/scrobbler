@@ -155,8 +155,8 @@ export async function renderSettings(app) {
   }
 
   clientsPanel.append(el('h3', { text: 'ListenBrainz-совместимые клиенты' }));
-  clientsPanel.append(copyRow('Submit endpoint', `${FUNCTIONS_URL}/api/1/submit-listens`));
-  clientsPanel.append(el('p', { class: 'hint', text: 'Нужен токен типа listenbrainz. Подходит для клиентов, где можно указать свой сервер ListenBrainz.' }));
+  clientsPanel.append(copyRow('API URL', `${FUNCTIONS_URL}/api`));
+  clientsPanel.append(el('p', { class: 'hint', text: 'В Web Scrobbler: сервис ListenBrainz → этот API URL + токен типа listenbrainz или API-ключ (сервис сам допишет /1/submit-listens). Поддерживаются scrobble, now playing и импорт.' }));
 
   clientsPanel.append(el('h3', { text: 'Любой Last.fm-клиент' }));
   clientsPanel.append(copyRow('API root', apiRoot));

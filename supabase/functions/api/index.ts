@@ -407,32 +407,46 @@ async function handleScrobble(req: Request): Promise<Response> {
 
 // ---------- ListenBrainz-совместимый приём ----------
 
+function listenMeta(listen: any) {
+  const meta = listen.track_metadata ?? {};
+  return {
+    artist: meta.artist_name ?? listen.artist_name,
+    track: meta.track_name ?? listen.track_name,
+    album: meta.release_name ?? null,
+    track_mbid: meta.additional_info?.recording_mbid ?? listen.recording_msid ?? null,
+    artist_mbid: meta.additional_info?.artist_mbids?.[0] ?? null,
+    duration: meta.additional_info?.duration_ms ? Number(meta.additional_info.duration_ms) / 1000 : null,
+    played_at: listen.listened_at ?? listen.played_at,
+  };
+}
+
 async function handleListenbrainz(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const header = req.headers.get('authorization') ?? '';
   const token = url.searchParams.get('token')
     ?? header.replace(/^Token\s+/i, '').trim();
-  const row = await resolveToken(admin, token, 'listenbrainz');
-  if (!row) return json({ error: 'invalid token' }, 401);
+  // универсальный API-ключ тоже валиден для ListenBrainz-протокола
+  const row = await resolveToken(admin, token);
+  if (!row || (row.kind !== 'listenbrainz' && row.kind !== 'session')) {
+    return json({ error: 'invalid token' }, 401);
+  }
+
+  // GET /1/validate-token — Web Scrobbler проверяет токен при подключении
+  if (req.method === 'GET') {
+    const profile = await profileById(admin, row.user_id);
+    return json({ code: 200, message: 'Token valid.', user_name: profile?.username ?? '' });
+  }
 
   const body = await req.json().catch(() => null);
   const listens = Array.isArray(body?.payload) ? body.payload : [];
   if (listens.length === 0) return json({ status: 'ok' });
 
-  const items = listens.map((listen: any) => {
-    const meta = listen.track_metadata ?? {};
-    return {
-      artist: meta.artist_name ?? listen.artist_name,
-      track: meta.track_name ?? listen.track_name,
-      album: meta.release_name ?? null,
-      track_mbid: meta.additional_info?.recording_mbid ?? listen.recording_msid ?? null,
-      artist_mbid: meta.additional_info?.artist_mbids?.[0] ?? null,
-      duration: meta.additional_info?.duration_ms ? Number(meta.additional_info.duration_ms) / 1000 : null,
-      played_at: listen.listened_at ?? listen.played_at,
-    };
-  });
+  if (body.listen_type === 'playing_now') {
+    await setNowPlaying(admin, row.user_id, listenMeta(listens[0]));
+    return json({ status: 'ok' });
+  }
 
-  const result = await ingestScrobbles(admin, row.user_id, items, 'listenbrainz');
+  const result = await ingestScrobbles(admin, row.user_id, listens.map(listenMeta), 'listenbrainz');
   return json({ status: 'ok', accepted: result.accepted });
 }
 
@@ -454,7 +468,10 @@ Deno.serve(async (req: Request) => {
     if (route === '/artwork') return await handleArtwork(req);
     if (route === '/now-playing') return await handleNowPlaying(req);
     if (route === '/lastfm') return await handleLastfmProxy(req);
-    if (route === '/lb/1/submit-listens' || route === '/1/submit-listens') return await handleListenbrainz(req);
+    if (route === '/lb/1/submit-listens' || route === '/1/submit-listens'
+      || route === '/1/validate-token' || route === '/lb/1/validate-token') {
+      return await handleListenbrainz(req);
+    }
 
     // Last.fm-совместимый корень: /api/2.0/ , /api/ , или вызов с ?method=
     const params = await readParams(req);
