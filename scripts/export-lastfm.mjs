@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Полная выгрузка истории Last.fm без бэкенда.
 //
-//   node scripts/export-lastfm.mjs --user slutvibe --key XXXX --out lastfm.json
-//   node scripts/export-lastfm.mjs --user slutvibe --key XXXX --out lastfm.csv
+//   node scripts/export-lastfm.mjs --user yourname --key XXXX --out lastfm.json
+//   node scripts/export-lastfm.mjs --user yourname --key XXXX --out lastfm.csv
 //
 // --key необязателен, если есть переменная окружения LASTFM_API_KEY.
 // Ключ: https://www.last.fm/api/account/create (до 1 декабря 2026 бесплатно).

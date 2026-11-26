@@ -122,9 +122,9 @@ Endpoint: `https://<project-ref>.supabase.co/functions/v1/api/1/submit-listens`,
 Выгрузить всё локально, не поднимая бэкенд:
 
 ```sh
-LASTFM_API_KEY=xxxx npm run export:lastfm -- --user slutvibe --out lastfm.json
+LASTFM_API_KEY=xxxx npm run export:lastfm -- --user yourname --out lastfm.json
 # или сразу CSV, который понимает импорт
-LASTFM_API_KEY=xxxx npm run export:lastfm -- --user slutvibe --out lastfm.csv
+LASTFM_API_KEY=xxxx npm run export:lastfm -- --user yourname --out lastfm.csv
 ```
 
 Скрипт идёт по всем страницам `user.getRecentTracks`, забирает любимые треки и

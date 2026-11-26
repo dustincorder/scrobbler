@@ -1,4 +1,4 @@
-import { functionCall, supabase, FUNCTIONS_URL, signOut } from '../api.js';
+import { functionCall, supabase, FUNCTIONS_URL, signOut, validateUsername } from '../api.js';
 import { el, sectionHead, avatar } from '../ui.js';
 import { href, navigate } from '../router.js';
 import { shortDate } from '../format.js';
@@ -69,8 +69,46 @@ export async function renderSettings(app) {
 
   const head = el('div', { class: 'settings-head' }, avatar(profile, { big: true }),
     el('div', {}, el('strong', { text: `@${profile.username}` }), el('div', { class: 'muted', text: `с ${shortDate(profile.created_at)}` })));
+
+  const usernameInput = el('input', {
+    value: profile.username, maxlength: '32', spellcheck: 'false', autocomplete: 'off',
+  });
+  const usernameState = el('span', { class: 'muted' });
+  const rename = el('button', { class: 'button secondary', type: 'button', text: 'Сменить имя' });
+  rename.addEventListener('click', async () => {
+    const value = usernameInput.value.trim().toLowerCase();
+    usernameState.textContent = '';
+    if (value === profile.username) return;
+    if (!validateUsername(value)) {
+      usernameState.textContent = '3–32 символа: только a-z, 0-9 и _.';
+      return;
+    }
+    rename.disabled = true;
+    const oldHref = href('u', profile.username);
+    try {
+      const result = await functionCall('/profile', { method: 'POST', body: { username: value } });
+      profile.username = result.username;
+      usernameInput.value = result.username;
+      head.querySelector('strong').textContent = `@${result.username}`;
+      for (const a of document.querySelectorAll(`a[href="${oldHref}"]`)) {
+        a.setAttribute('href', href('u', result.username));
+      }
+      usernameState.textContent = `Готово — вход и URL теперь по имени «${result.username}». Старые ссылки на профиль больше не работают.`;
+    } catch (error) {
+      usernameState.textContent = `Ошибка: ${error.message}`;
+    } finally {
+      rename.disabled = false;
+    }
+  });
+
   profilePanel.append(
     head,
+    el('div', { class: 'grid-2' },
+      el('label', { class: 'field' }, el('span', { text: 'Имя пользователя' }), usernameInput),
+      el('div', { class: 'field' },
+        el('span', { text: ' ' }),
+        el('div', { class: 'button-row' }, rename, usernameState)),
+    ),
     el('div', { class: 'grid-2' },
       el('label', { class: 'field' }, el('span', { text: 'Отображаемое имя' }), display),
       el('label', { class: 'field' }, el('span', { text: 'Страна' }), country),

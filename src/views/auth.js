@@ -30,7 +30,7 @@ export function renderAuth(root, route, { shell, app, navigate: go }) {
   const errorSlot = el('div', { class: 'form-error', role: 'alert' });
   const username = el('input', {
     name: 'username', autocomplete: 'username', required: true,
-    placeholder: 'например, slutvibe', spellcheck: 'false', maxlength: '32',
+    placeholder: 'например, robin', spellcheck: 'false', maxlength: '32',
   });
   const password = el('input', {
     name: 'password', type: 'password', autocomplete: join ? 'new-password' : 'current-password',

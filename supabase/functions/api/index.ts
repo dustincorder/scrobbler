@@ -9,6 +9,7 @@ import {
   cleanText,
   json,
   normalizeScrobble,
+  normalizeUsername,
   preflight,
   randomToken,
   sha256,
@@ -136,6 +137,40 @@ async function handleImport(req: Request): Promise<Response> {
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : 'import failed' }, 500);
   }
+}
+
+async function handleProfile(req: Request): Promise<Response> {
+  const auth = await requireUser(req);
+  if (!auth) return json({ error: 'unauthorized' }, 401);
+  if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405);
+
+  const body = await req.json().catch(() => ({}));
+  const username = normalizeUsername(body.username);
+  if (!username) return json({ error: 'имя: 3–32 символа, только a-z, 0-9 и _' }, 400);
+  if (username === auth.profile.username) return json({ username });
+
+  const { data: clash } = await admin
+    .from('profiles')
+    .select('id')
+    .eq('username', username)
+    .neq('id', auth.profile.id)
+    .maybeSingle();
+  if (clash) return json({ error: 'имя занято' }, 409);
+
+  // почта входа строится из имени — держим её синхронно с username
+  const domain = String(auth.user.email ?? '').split('@')[1] ?? 'users.scrobble.invalid';
+  const { error: mailError } = await admin.auth.admin.updateUserById(auth.user.id, {
+    email: `${username}@${domain}`,
+    email_confirm: true,
+  });
+  if (mailError) return json({ error: mailError.message }, 500);
+
+  const { error } = await admin
+    .from('profiles')
+    .update({ username })
+    .eq('id', auth.profile.id);
+  if (error) return json({ error: error.code === '23505' ? 'имя занято' : error.message }, 500);
+  return json({ username });
 }
 
 async function handleNowPlaying(req: Request): Promise<Response> {
@@ -382,6 +417,7 @@ Deno.serve(async (req: Request) => {
     if (route === '/tokens') return await handleTokens(req);
     if (route === '/auth/approve') return await handleAuthApprove(req);
     if (route === '/import') return await handleImport(req);
+    if (route === '/profile') return await handleProfile(req);
     if (route === '/now-playing') return await handleNowPlaying(req);
     if (route === '/lastfm') return await handleLastfmProxy(req);
     if (route === '/lb/1/submit-listens' || route === '/1/submit-listens') return await handleListenbrainz(req);

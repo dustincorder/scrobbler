@@ -100,6 +100,8 @@ export async function renderImport(app) {
     stopButton.classList.remove('hidden');
     log.textContent = '';
     const state = readProgress(app) ?? { page: 0, totalPages: 0, imported: 0 };
+    const leaving = (event) => { event.preventDefault(); event.returnValue = ''; };
+    window.addEventListener('beforeunload', leaving);
 
     try {
       const infoData = await functionCall(
@@ -125,6 +127,8 @@ export async function renderImport(app) {
       let page = state.page ?? 0;
       let totalPages = state.totalPages ?? 1;
       let imported = state.imported ?? 0;
+      let ignored = 0;
+      let remoteTotal = null;
 
       while (!stop && page < totalPages) {
         page += 1;
@@ -132,12 +136,14 @@ export async function renderImport(app) {
           `/lastfm?mode=recent&lastfmUser=${encodeURIComponent(lastfmUser)}&apiKey=${encodeURIComponent(apiKey)}&page=${page}&limit=200`,
         );
         totalPages = data.totalPages || totalPages;
+        if (remoteTotal === null) remoteTotal = data.total ?? 0;
         if (data.items?.length) {
           const result = await functionCall('/import', {
             method: 'POST',
             body: { items: data.items, source: 'import' },
           });
           imported += result.accepted ?? 0;
+          ignored += result.ignored ?? 0;
         }
         progress.set((page / totalPages) * 100);
         log.textContent = `Страница ${page} из ${totalPages} · принято ${num(imported)}`;
@@ -166,7 +172,11 @@ export async function renderImport(app) {
           }
           lovedPage += 1;
         }
-        log.textContent = `Готово. Импортировано ${num(imported)} скробблов и ${num(lovedCount)} любимых треков.`;
+        if (imported === 0 && (remoteTotal ?? 0) === 0) {
+          log.textContent = `Last.fm отдал пустую историю скробблов при ${num(info.playcount)} в профиле — любимые треки импортированы (${num(lovedCount)}), скробблы нет. Обычно это настройка приватности: Last.fm → Settings → Privacy → «Hide real-time listening data» должна быть выключена. Либо ключ без Pro после 1 декабря видит не всё — тогда CSV-экспорт ниже.`;
+        } else {
+          log.textContent = `Готово. Импортировано ${num(imported)} скробблов${ignored ? `, отклонено ${num(ignored)}` : ''} и ${num(lovedCount)} любимых треков.`;
+        }
         progress.set(100);
         writeProgress(app, null);
       } else {
@@ -175,6 +185,7 @@ export async function renderImport(app) {
     } catch (error) {
       log.textContent = `Ошибка: ${error.message}`;
     } finally {
+      window.removeEventListener('beforeunload', leaving);
       runButton.disabled = false;
       checkButton.disabled = false;
       stopButton.classList.add('hidden');
@@ -190,6 +201,7 @@ export async function renderImport(app) {
       el('label', { class: 'field' }, el('span', { text: 'API key' }), keyInput),
     ),
     el('div', { class: 'button-row' }, checkButton, runButton, stopButton),
+    el('p', { class: 'hint', text: 'Импорт идёт в этой вкладке — не закрывай её. Если оборвётся, прогресс сохранён: кнопка станет «Продолжить».' }),
     checkResult,
     progress.bar,
     log,
