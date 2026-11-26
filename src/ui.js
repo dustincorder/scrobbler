@@ -118,7 +118,7 @@ export function scrobbleRow(scrobble, username, { showDate = true, showArt = tru
 }
 
 export function nowPlayingCard(item, username) {
-  return el('div', { class: 'now-playing' },
+  return el('li', { class: 'now-playing' },
     el('span', { class: 'pulse', title: 'Сейчас играет' }),
     cover(item.artist, item.album),
     el('div', { class: 'row-main' },

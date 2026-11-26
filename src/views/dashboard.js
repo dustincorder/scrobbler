@@ -45,20 +45,18 @@ export async function renderDashboard(profile, { owner = false } = {}) {
     ),
   ));
 
-  // ---- сейчас играет + последние скробблы ----
-  const liveSlot = el('div', { class: 'live-slot' });
-  const recentSection = el('section', { class: 'dash-recent' },
+  // ---- последние скробблы (сейчас играет — первой строкой) ----
+  const rows = el('ol', { class: 'rows' }, ...recent.map((row) => scrobbleRow(row, profile.username)));
+  const emptySlot = recent.length ? null : empty('Скробблов ещё нет.');
+  root.append(el('section', { class: 'dash-recent' },
     el('div', { class: 'section-line' },
       el('p', { class: 'label', text: 'Последние прослушивания' }),
       el('a', { class: 'link-more', href: href('u', profile.username), text: 'Профиль' }),
     ),
-    recent.length
-      ? el('ol', { class: 'rows' }, ...recent.map((row) => scrobbleRow(row, profile.username)))
-      : empty('Скробблов ещё нет.'),
-  );
-  const liveGrid = el('section', { class: 'dash-live' }, liveSlot, recentSection);
-  root.append(liveGrid);
-  refreshLive(profile.id, profile.username, liveSlot, liveGrid);
+    rows,
+    emptySlot,
+  ));
+  refreshLive(profile.id, profile.username, rows, emptySlot);
 
   // ---- любимые треки ----
   if (loved.length) {
@@ -173,12 +171,12 @@ function pair(value, label) {
   );
 }
 
-async function refreshLive(profileId, username, slot, grid) {
+async function refreshLive(profileId, username, rows, emptySlot) {
   try {
     const live = await nowPlaying(profileId);
-    if (slot.isConnected && live) {
-      slot.replaceChildren(nowPlayingCard(live, username));
-      grid.classList.add('has-live');
+    if (rows.isConnected && live) {
+      rows.prepend(nowPlayingCard(live, username));
+      emptySlot?.remove();
     }
   } catch {
     // не критично
