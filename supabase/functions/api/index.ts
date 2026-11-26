@@ -76,8 +76,12 @@ async function handleTokens(req: Request): Promise<Response> {
 
   if (req.method === 'POST') {
     const body = await req.json().catch(() => ({}));
-    const kind = ['webhook', 'listenbrainz'].includes(body.kind) ? body.kind : 'webhook';
-    const label = cleanText(body.label, 80) ?? (kind === 'webhook' ? 'Web Scrobbler' : 'ListenBrainz');
+    const kind = ['webhook', 'listenbrainz', 'session'].includes(body.kind) ? body.kind : 'webhook';
+    const label = cleanText(body.label, 80) ?? {
+      webhook: 'Web Scrobbler',
+      listenbrainz: 'ListenBrainz',
+      session: 'API-ключ',
+    }[kind];
     const raw = randomToken(24);
     const row = await createToken(admin, auth.profile.id, kind, label, raw);
     if (!row) return json({ error: 'could not create token' }, 500);
@@ -307,6 +311,32 @@ async function handleWebhook(req: Request): Promise<Response> {
   return json({ ok: true, ignored: true });
 }
 
+// ---------- универсальный scrobble для API-ключей ----------
+
+async function handleScrobble(req: Request): Promise<Response> {
+  if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405);
+  const url = new URL(req.url);
+  const token = url.searchParams.get('token') ?? bearer(req) ?? '';
+  const row = await resolveToken(admin, token);
+  if (!row) return json({ error: 'invalid token' }, 401);
+
+  const body = await req.json().catch(() => null);
+  const items = Array.isArray(body)
+    ? body
+    : Array.isArray(body?.items) ? body.items : body ? [body] : [];
+  if (!items.length) return json({ error: 'items required' }, 400);
+  if (items.length > 500) return json({ error: 'too many items in one batch' }, 413);
+
+  const now = Date.now() / 1000;
+  const result = await ingestScrobbles(
+    admin,
+    row.user_id,
+    items.map((item: Record<string, unknown>) => ({ played_at: now, ...item })),
+    'api',
+  );
+  return json(result);
+}
+
 // ---------- ListenBrainz-совместимый приём ----------
 
 async function handleListenbrainz(req: Request): Promise<Response> {
@@ -348,6 +378,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     if (route === '/webhook' || route === '/webhook/') return await handleWebhook(req);
+    if (route === '/scrobble' || route === '/scrobble/') return await handleScrobble(req);
     if (route === '/tokens') return await handleTokens(req);
     if (route === '/auth/approve') return await handleAuthApprove(req);
     if (route === '/import') return await handleImport(req);

@@ -36,7 +36,7 @@ Node 22+.
 - `src/format.js` — dates, Russian plurals, escaping.
 - `src/csv.js` — Last.fm CSV parsing.
 - `src/ui.js` — shared components (rows, covers, heatmap, charts).
-- `src/views/` — profile, detail pages, auth, settings, import.
+- `src/views/` — dashboard (home), profile, detail pages, auth, settings, import.
 - `supabase/schema.sql` — full schema for a fresh project.
 - `supabase/migrations/` — ordered copies for existing projects.
 - `supabase/functions/api/index.ts` — dispatch, webhook, tokens, import, Last.fm proxy.

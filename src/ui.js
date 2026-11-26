@@ -1,5 +1,5 @@
 import { artwork } from './api.js';
-import { escapeHtml, hueFor, initials, num, plays, shortDate, timeAgo, fullDate } from './format.js';
+import { initials, num, plays, shortDate, timeAgo, fullDate } from './format.js';
 import { href } from './router.js';
 
 export function el(tag, props = {}, ...children) {
@@ -22,7 +22,6 @@ export function el(tag, props = {}, ...children) {
 
 export function cover(artist, album, { big = false } = {}) {
   const node = el('div', { class: `cover${big ? ' cover-big' : ''}` });
-  node.style.setProperty('--h', String(hueFor(artist)));
   const label = el('span', { class: 'cover-initials', text: initials(album || artist) });
   node.append(label);
   artwork(artist, album).then((url) => {
@@ -36,7 +35,6 @@ export function cover(artist, album, { big = false } = {}) {
 
 export function avatar(profile, { big = false } = {}) {
   const node = el('div', { class: `avatar${big ? ' avatar-big' : ''}` });
-  node.style.setProperty('--h', String(hueFor(profile?.username ?? '?')));
   node.append(el('span', { class: 'avatar-initials', text: initials(profile?.display_name || profile?.username) }));
   if (profile?.avatar_url) {
     const img = el('img', { src: profile.avatar_url, alt: '', loading: 'lazy' });
@@ -220,8 +218,8 @@ export function heatmap(days) {
   start.setUTCDate(start.getUTCDate() - offset);
 
   const grid = el('div', { class: 'heatmap' });
-  const labels = el('div', { class: 'heatmap-months' });
-  let lastMonth = -1;
+  const dayLabels = el('div', { class: 'heat-days' },
+    ...['пн', '', 'ср', '', 'пт', '', 'вс'].map((label) => el('span', { text: label })));
 
   for (let i = 0; i < 53 * 7; i++) {
     const date = new Date(start);
@@ -235,18 +233,9 @@ export function heatmap(days) {
       title: `${shortDate(date)} — ${count ? plays(count) : 'тишина'}`,
     });
     grid.append(cell);
-
-    if (i % 7 === 0) {
-      const month = date.getUTCMonth();
-      labels.append(el('span', {
-        class: 'heat-month',
-        text: month !== lastMonth ? date.toLocaleDateString('ru-RU', { month: 'short' }) : '',
-      }));
-      lastMonth = month;
-    }
   }
 
-  wrap.append(grid, el('div', { class: 'heatmap-legend' },
+  wrap.append(el('div', { class: 'heatmap-inner' }, dayLabels, grid), el('div', { class: 'heatmap-legend' },
     el('span', { text: 'меньше' }),
     ...['l0', 'l1', 'l2', 'l3', 'l4'].map((c) => el('span', { class: `heat-cell ${c}` })),
     el('span', { text: 'больше' }),

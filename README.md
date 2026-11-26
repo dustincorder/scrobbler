@@ -30,7 +30,7 @@ GitHub Pages (статика)  ──►  Supabase Postgres (RLS, только �
 - обложки через iTunes Search API с кешем в браузере;
 - импорт всей истории Last.fm (API или CSV-экспорт);
 - публичный или скрытый профиль;
-- панель токенов: webhook и ListenBrainz, отзыв в один клик.
+- панель токенов: API-ключ, webhook и ListenBrainz, отзыв в один клик.
 
 ## Быстрый старт
 
@@ -100,6 +100,12 @@ Pano получает ключ сессии через `auth.getMobileSession`. 
 
 Endpoint: `https://<project-ref>.supabase.co/functions/v1/api/1/submit-listens`,
 токен типа **listenbrainz** в заголовке `Authorization: Token <token>`.
+
+### API-ключ
+
+Настройки → Токены → тип **API-ключ**. Работает как `sk` в `/api/2.0`
+и как `?token=` в `POST /api/scrobble` для скриптов и своих клиентов —
+см. [docs/CLIENTS.md](docs/CLIENTS.md).
 
 ## Импорт Last.fm
 

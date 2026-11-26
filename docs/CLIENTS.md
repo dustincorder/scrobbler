@@ -51,6 +51,26 @@ https://<project-ref>.supabase.co/functions/v1/api/2.0
 `https://<сайт>/#/connect?token=<token>` → войти → `auth.getSession`.
 Либо сразу `auth.getMobileSession` с именем и паролем.
 
+## API-ключ
+
+Сайт → **Настройки → Токены → Создать токен** → тип `API-ключ`. Это токен
+вида `session`, он работает везде, где принимается ключ сессии:
+
+- как `sk` в вызовах `/api/2.0` (`method=track.scrobble&sk=<ключ>`);
+- как `?token=<ключ>` или `Authorization: Bearer <ключ>` в `/api/scrobble`.
+
+Простой приём скробблов для скриптов и своих клиентов:
+
+```sh
+curl -X POST "https://<project-ref>.supabase.co/functions/v1/api/scrobble?token=<ключ>" \
+  -H 'Content-Type: application/json' \
+  -d '{"artist":"Кино","track":"Звезда по имени Солнце","album":"Звезда по имени Солнце"}'
+```
+
+Тело — один объект или массив (или `{"items":[...]}`). Поля: `artist`,
+`track`, опционально `album`, `album_artist`, `duration`, `played_at`
+(секунды UNIX или ISO). Если `played_at` нет — пишется «сейчас».
+
 ## ListenBrainz-совместимые клиенты
 
 Endpoint:

@@ -29,7 +29,7 @@ function writeProgress(app, value) {
 export async function renderImport(app) {
   const wrap = el('div', { class: 'content narrow' });
   wrap.append(el('h1', { text: 'Импорт' }));
-  wrap.append(el('p', { class: 'lead small', text: 'Забери историю из Last.fm, пока их API ещё отвечает. Ключ используется только в этом запросе и не сохраняется.' }));
+  wrap.append(el('p', { class: 'muted', text: 'Забери историю из Last.fm, пока их API ещё отвечает. Ключ используется только в этом запросе и не сохраняется.' }));
 
   // ---------- Last.fm API ----------
   const lfmPanel = el('section', { class: 'panel' });

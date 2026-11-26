@@ -13,8 +13,7 @@ function copyRow(label, value) {
       setTimeout(() => { button.textContent = 'Копировать'; }, 1500);
     } catch {
       input.select();
-      document.execCommand?.('copy');
-      button.textContent = 'Скопировано';
+      button.textContent = 'Выделено';
     }
   });
   return el('div', { class: 'field' },
@@ -123,6 +122,14 @@ export async function renderSettings(app) {
 
   clientsPanel.append(el('h3', { text: 'Любой Last.fm-клиент' }));
   clientsPanel.append(copyRow('API root', apiRoot));
+
+  clientsPanel.append(el('h3', { text: 'API-ключ' }));
+  clientsPanel.append(el('ol', { class: 'steps' },
+    el('li', { text: 'Создай токен типа API-ключ в разделе «Токены» ниже.' }),
+    el('li', { text: 'Работает как ключ сессии (sk) в вызовах /api/2.0 — подходит любому Last.fm-совместимому клиенту.' }),
+    el('li', { text: 'Для скриптов: POST /api/scrobble?token=<ключ> с телом {"artist": "…", "track": "…"}.' }),
+  ));
+  clientsPanel.append(copyRow('Scrobble endpoint', `${FUNCTIONS_URL}/api/scrobble`));
   wrap.append(clientsPanel);
 
   // ---------- токены ----------
@@ -131,6 +138,7 @@ export async function renderSettings(app) {
 
   const newTokenSlot = el('div', { class: 'hint' });
   const kind = el('select', {},
+    el('option', { value: 'session', text: 'API-ключ' }),
     el('option', { value: 'webhook', text: 'Web Scrobbler (webhook)' }),
     el('option', { value: 'listenbrainz', text: 'ListenBrainz' }),
   );
@@ -149,6 +157,9 @@ export async function renderSettings(app) {
       newTokenSlot.replaceChildren(
         el('p', { text: 'Токен создан. Скопируй сейчас — потом не покажу.' }),
         copyRow('Token', result.token),
+        kind.value === 'session'
+          ? el('p', { text: 'Это универсальный ключ: работает как sk в /api/2.0 (method=track.scrobble&sk=…) и как ?token= в /api/scrobble.' })
+          : null,
       );
       await refreshTokens();
     } catch (error) {

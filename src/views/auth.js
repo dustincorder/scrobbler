@@ -88,10 +88,10 @@ export function renderAuth(root, route, { shell, app, navigate: go }) {
 
   const content = el('div', { class: 'auth-wrap' },
     authCard(
-      join ? 'Новый слушатель' : 'С возвращением',
+      join ? 'Новый слушатель' : 'Вход',
       join
         ? 'Имя видно в адресе профиля. Пароль понадобится для Pano Scrobbler.'
-        : 'Войди, чтобы смотреть свои настройки и импорт.',
+        : 'Имя и пароль от этого сервера.',
       form,
     ),
     alt,
