@@ -326,7 +326,7 @@ input, select, textarea, button { font: inherit; }
   border: 1px solid rgba(226, 59, 78, 0.3);
   border-radius: var(--radius-lg);
 }
-.rows > .now-playing { margin: 0 0 8px; }
+.rows > .now-playing { margin: 0 0 8px; width: 100%; box-sizing: border-box; }
 .live-label { margin-left: auto; font-size: 12px; color: var(--accent-2); }
 .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 0 rgba(226, 59, 78, 0.7); animation: pulse 1.8s infinite; }
 @keyframes pulse {
