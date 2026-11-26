@@ -4,6 +4,10 @@
 Скробблы принимает Supabase Edge Function, совместимая с **Pano Scrobbler** (Last.fm / GNU FM API)
 и **Web Scrobbler** (webhook). Плюс импорт всей истории из Last.fm.
 
+**Живой экземпляр:** <https://dustcord.dev/scrobbler/> (GitHub Pages, проект
+`dustincorder/scrobbler`). Регистрация закрыта: новый профиль создаёт только владелец
+через Supabase Admin API, флаг `VITE_SIGNUPS_OPEN=true` включает форму регистрации.
+
 ```
 GitHub Pages (статика)  ──►  Supabase Postgres (RLS, только чтение для публики)
         │                        ▲
@@ -60,6 +64,10 @@ supabase functions deploy api --no-verify-jwt
    - `VITE_SUPABASE_URL` — `https://<project-ref>.supabase.co`
    - `VITE_SUPABASE_PUBLISHABLE_KEY` — publishable (anon) key
 4. Пуш в `main` собирает и публикует сайт.
+
+Workflow сам подставляет `VITE_BASE_PATH=/<repo>/`, потому что project pages живут
+по адресу `https://<user>.github.io/<repo>/` (или на кастомном домене аккаунта).
+Локально `base` остаётся `/`.
 
 Локально:
 

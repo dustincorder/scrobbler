@@ -19,8 +19,8 @@ verify_jwt = false
 
 [auth]
 enable_signup = false
-additional_redirect_urls = []
-site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://dustcord.dev/scrobbler/"]
+site_url = "https://dustcord.dev/scrobbler/"
 
 [auth.email]
 enable_confirmations = false
