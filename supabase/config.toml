@@ -19,8 +19,8 @@ verify_jwt = false
 
 [auth]
 enable_signup = false
-additional_redirect_urls = ["https://dustcord.dev/scrobbler/"]
-site_url = "https://dustcord.dev/scrobbler/"
+additional_redirect_urls = ["https://scrobbler.dustcord.dev/"]
+site_url = "https://scrobbler.dustcord.dev/"
 
 [auth.email]
 enable_confirmations = false
