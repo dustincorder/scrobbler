@@ -2,11 +2,11 @@ import {
   getProfile, getStats, recentScrobbles, topItems, dailyCounts, lovedTracks,
   nowPlaying, artistPage,
 } from '../api.js';
-import { el, avatar, cover, empty, spinner, errorBox, sectionHead, tabs, scrobbleRow,
-  nowPlayingCard, topArtistList, topAlbumGrid, topTrackList, heatmap, statBlock,
+import { el, avatar, empty, spinner, errorBox, sectionHead, tabs, scrobbleRow,
+  nowPlayingCard, topArtistList, topAlbumGrid, topTrackList, lovedTrackList, heatmap, statBlock,
   periodPicker, barChart } from '../ui.js';
 import { href, navigate } from '../router.js';
-import { escapeHtml, num, plays, fullDate, shortDate, periodLabel } from '../format.js';
+import { escapeHtml, num, plays, shortDate, periodLabel } from '../format.js';
 
 export async function renderProfile(route, app) {
   const profile = await getProfile(route.username);
@@ -162,23 +162,9 @@ async function renderTab(route, profile, isMe) {
   if (route.tab === 'loved') {
     const loved = await lovedTracks(profile.id);
     if (!loved.length) return empty('Ничего не отмечено любимым.');
-    const rows = el('ol', { class: 'rows' });
-    for (const item of loved) {
-      const li = el('li', { class: 'row scrobble' });
-      li.append(cover(item.artist, null));
-      const main = el('div', { class: 'row-main' });
-      main.append(el('a', {
-        class: 'row-title',
-        href: href('u', profile.username, 'track', item.artist, item.track),
-        text: item.track,
-      }));
-      const sub = el('div', { class: 'row-sub' });
-      sub.append(el('a', { href: href('u', profile.username, 'artist', item.artist), text: item.artist }));
-      main.append(sub);
-      li.append(main, el('span', { class: 'heart', text: '♥', title: fullDate(item.loved_at) }));
-      rows.append(li);
-    }
-    return el('section', { class: 'panel' }, sectionHead(`Любимые треки · ${num(loved.length)}`), rows);
+    return el('section', { class: 'panel' },
+      sectionHead(`Любимые треки · ${num(loved.length)}`),
+      lovedTrackList(loved, profile.username));
   }
 
   if (route.tab === 'charts') {

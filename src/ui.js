@@ -204,6 +204,26 @@ export function topTrackList(rows, username) {
   return list;
 }
 
+export function lovedTrackList(items, username) {
+  const rows = el('ol', { class: 'rows' });
+  for (const item of items) {
+    const li = el('li', { class: 'row scrobble' });
+    li.append(cover(item.artist, null));
+    const main = el('div', { class: 'row-main' });
+    main.append(el('a', {
+      class: 'row-title',
+      href: href('u', username, 'track', item.artist, item.track),
+      text: item.track,
+    }));
+    const sub = el('div', { class: 'row-sub' });
+    sub.append(el('a', { href: href('u', username, 'artist', item.artist), text: item.artist }));
+    main.append(sub);
+    li.append(main, el('span', { class: 'heart', text: '♥', title: fullDate(item.loved_at) }));
+    rows.append(li);
+  }
+  return rows;
+}
+
 export function heatmap(days) {
   const wrap = el('div', { class: 'heatmap-wrap' });
   const map = new Map(days.map((d) => [String(d.day), Number(d.plays)]));
