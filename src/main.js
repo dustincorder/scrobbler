@@ -1,5 +1,5 @@
 import {
-  configured, supabase,
+  configured, supabase, ownerProfile,
 } from './api.js';
 import { parseRoute, href, navigate } from './router.js';
 import { el, avatar, spinner, errorBox } from './ui.js';
@@ -79,8 +79,11 @@ function navLink({ label, href: to, name, iconName, onClick }) {
 function shell(content, { wide = false } = {}) {
   if (!app.profile) {
     return el('div', { class: 'bare' },
-      el('div', { class: 'bare-top' }, brand()),
-      el('main', { class: 'page' }, content),
+      el('div', { class: 'bare-top' },
+        brand(),
+        el('a', { class: 'link-more', href: href('login'), text: 'Войти' }),
+      ),
+      el('main', { class: wide ? 'page wide' : 'page' }, content),
     );
   }
 
@@ -121,11 +124,20 @@ async function render() {
   const route = parseRoute();
 
   if (route.name === 'home') {
-    if (app.profile) {
+    let profile = app.profile;
+    if (!profile) {
+      try {
+        profile = await ownerProfile();
+      } catch {
+        profile = null;
+      }
+      if (version !== app.version) return;
+    }
+    if (profile) {
       const wrap = el('div', { class: 'content' }, spinner());
       root.replaceChildren(shell(wrap, { wide: true }));
       try {
-        const node = await renderDashboard(app);
+        const node = await renderDashboard(profile, { owner: app.profile?.id === profile.id });
         if (version !== app.version) return;
         wrap.replaceChildren(node);
       } catch (error) {

@@ -47,6 +47,18 @@ export async function getProfile(username) {
   return data?.[0] ?? null;
 }
 
+// Личный экземпляр: публичный профиль владельца — первый в базе.
+export async function ownerProfile() {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('is_public', true)
+    .order('created_at', { ascending: true })
+    .limit(1);
+  if (error) throw new Error(error.message);
+  return data?.[0] ?? null;
+}
+
 export async function getStats(username) {
   const { data, error } = await supabase.rpc('profile_stats', { p_username: username });
   if (error) throw new Error(error.message);

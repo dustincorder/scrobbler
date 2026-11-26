@@ -15,8 +15,7 @@ const RANGES = [
 const TOP_LIMIT = 8;
 const TRACK_LIMIT = 10;
 
-export async function renderDashboard(app) {
-  const profile = app.profile;
+export async function renderDashboard(profile, { owner = false } = {}) {
   const root = el('div', { class: 'dash' });
   let range = 'overall';
 
@@ -62,7 +61,7 @@ export async function renderDashboard(app) {
     ),
   ));
 
-  if (!total) {
+  if (!total && owner) {
     root.append(el('section', { class: 'panel welcome' },
       el('h2', { text: 'Пока пусто' }),
       el('p', { class: 'muted', text: 'Подключи клиент или импортируй историю из Last.fm — статистика появится здесь.' }),
