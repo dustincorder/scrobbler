@@ -170,6 +170,35 @@ export async function renderSettings(app) {
   clientsPanel.append(copyRow('Scrobble endpoint', `${FUNCTIONS_URL}/api/scrobble`));
   wrap.append(clientsPanel);
 
+  // ---------- обложки ----------
+  const artPanel = el('section', { class: 'panel' });
+  artPanel.append(sectionHead('Обложки'));
+
+  const artState = el('span', { class: 'muted' });
+  const artButton = el('button', { class: 'button secondary', type: 'button', text: 'Подтянуть обложки' });
+  artButton.addEventListener('click', async () => {
+    artButton.disabled = true;
+    artState.textContent = 'Считаю, чего не хватает…';
+    try {
+      for (;;) {
+        const result = await functionCall('/artwork', { method: 'POST' });
+        if (!result.remaining) break;
+        artState.textContent = `Осталось ${result.remaining}…`;
+      }
+      artState.textContent = 'Готово — картинки подставятся сами по мере появления на страницах.';
+    } catch (error) {
+      artState.textContent = `Ошибка: ${error.message}`;
+    } finally {
+      artButton.disabled = false;
+    }
+  });
+
+  artPanel.append(
+    el('p', { class: 'hint', text: 'Разово добирает картинки для артистов и альбомов из базы (Deezer → iTunes). Кэш общий и бессрочный; новые скробблы подтягивают обложки сами.' }),
+    el('div', { class: 'button-row' }, artButton, artState),
+  );
+  wrap.append(artPanel);
+
   // ---------- токены ----------
   const tokenPanel = el('section', { class: 'panel' });
   tokenPanel.append(sectionHead('Токены'));

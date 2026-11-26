@@ -197,17 +197,10 @@ export function artwork(artist, album) {
     queue.push(async () => {
       let url = null;
       try {
-        const term = album ? `${artist} ${album}` : artist;
-        const entity = album ? 'album' : 'musicArtist';
-        const response = await fetch(
-          `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=${entity}&limit=1`,
-        );
-        if (response.ok) {
-          const data = await response.json();
-          const hit = data?.results?.[0];
-          const raw = hit?.artworkUrl100 ?? hit?.artworkUrl60 ?? null;
-          if (raw) url = raw.replace(/\/\d+x\d+bb\./, '/300x300bb.');
-        }
+        const params = new URLSearchParams({ artist });
+        if (album) params.set('album', album);
+        const response = await fetch(`${FUNCTIONS_URL}/api/artwork?${params}`);
+        if (response.ok) url = (await response.json())?.image ?? null;
       } catch {
         url = null;
       }

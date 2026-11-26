@@ -4,6 +4,7 @@
 import { adminClient, anonClient, bearer, profileById, userFromJwt } from './supabase.ts';
 import { handleLastfm } from './lastfm.ts';
 import { createToken, clearNowPlaying, ingestScrobbles, resolveToken, setNowPlaying } from './ingest.ts';
+import { resolveArtwork } from './artwork.ts';
 import {
   clampInt,
   cleanText,
@@ -346,6 +347,38 @@ async function handleWebhook(req: Request): Promise<Response> {
   return json({ ok: true, ignored: true });
 }
 
+// ---------- обложки ----------
+
+async function handleArtwork(req: Request): Promise<Response> {
+  if (req.method === 'POST') {
+    // backfill по базе владельца — только со своим JWT
+    const auth = await requireUser(req);
+    if (!auth) return json({ error: 'unauthorized' }, 401);
+    const { data: keys } = await admin.rpc('distinct_artwork_keys', { p_user: auth.profile.id });
+    const { data: have } = await admin.from('artwork').select('kind,artist,album');
+    const haveSet = new Set((have ?? []).map((r) => `${r.kind}|${r.artist}|${r.album}`));
+    const missing = (keys ?? [])
+      .map((k: { artist: string; album: string | null }) => ({
+        kind: k.album ? 'album' : 'artist',
+        artist: String(k.artist).toLowerCase(),
+        album: String(k.album ?? '').toLowerCase(),
+      }))
+      .filter((k) => !haveSet.has(`${k.kind}|${k.artist}|${k.album}`));
+    const batch = missing.slice(0, 40);
+    for (const key of batch) {
+      await resolveArtwork(admin, key.kind as 'artist' | 'album', key.artist, key.album).catch(() => {});
+    }
+    return json({ resolved: batch.length, remaining: missing.length - batch.length });
+  }
+
+  const url = new URL(req.url);
+  const artist = cleanText(url.searchParams.get('artist'), 500);
+  const album = cleanText(url.searchParams.get('album'), 500);
+  if (!artist) return json({ error: 'artist required' }, 400);
+  const image = await resolveArtwork(admin, album ? 'album' : 'artist', artist, album);
+  return json({ image });
+}
+
 // ---------- универсальный scrobble для API-ключей ----------
 
 async function handleScrobble(req: Request): Promise<Response> {
@@ -418,6 +451,7 @@ Deno.serve(async (req: Request) => {
     if (route === '/auth/approve') return await handleAuthApprove(req);
     if (route === '/import') return await handleImport(req);
     if (route === '/profile') return await handleProfile(req);
+    if (route === '/artwork') return await handleArtwork(req);
     if (route === '/now-playing') return await handleNowPlaying(req);
     if (route === '/lastfm') return await handleLastfmProxy(req);
     if (route === '/lb/1/submit-listens' || route === '/1/submit-listens') return await handleListenbrainz(req);

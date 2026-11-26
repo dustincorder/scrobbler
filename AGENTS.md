@@ -42,6 +42,7 @@ Node 22+.
 - `supabase/functions/api/index.ts` — dispatch, webhook, tokens, import, Last.fm proxy.
 - `supabase/functions/api/lastfm.ts` — Last.fm 2.0 protocol subset.
 - `supabase/functions/api/ingest.ts` — token resolution and scrobble ingestion.
+- `supabase/functions/api/artwork.ts` — Deezer/iTunes artwork resolver, shared cache table.
 - `supabase/functions/api/util.ts` — normalization, hashing, dates.
 
 ## Security invariants

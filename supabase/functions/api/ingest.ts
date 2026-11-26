@@ -1,5 +1,6 @@
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import { normalizeScrobble, sha256, type ScrobbleInput } from './util.ts';
+import { warmArtwork } from './artwork.ts';
 
 export interface TokenRow {
   id: string;
@@ -70,6 +71,8 @@ export async function ingestScrobbles(
     if (error) throw new Error(error.message);
     accepted += chunk.length;
   }
+
+  if (accepted > 0) warmArtwork(admin, items);
 
   return { accepted, ignored: Math.max(0, rawItems.length - items.length) };
 }
